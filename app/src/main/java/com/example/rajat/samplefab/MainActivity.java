@@ -7,6 +7,7 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -98,6 +99,9 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onResume called");
         // Start timer again
         startImageTimer();
+
+        EndpointsAsyncTask getMsg = new EndpointsAsyncTask();
+        getMsg.execute(new Pair<Context, String>(this, "Rajat"));
     }
 
     View.OnClickListener fabOnClick = new View.OnClickListener() {
