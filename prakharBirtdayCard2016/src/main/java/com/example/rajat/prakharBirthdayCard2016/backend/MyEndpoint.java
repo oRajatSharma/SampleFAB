@@ -64,15 +64,24 @@ public class MyEndpoint {
     public MyBean receiveGreetings(@Named("id") Long id) {
         Query<GreetingMsg> q = ofy().load().type(GreetingMsg.class).filter("id >", id);
         MyBean responseMsg = new MyBean();
-        responseMsg.setData("{");
+        responseMsg.setData("{ \"messages\": [");
+
+        int notFirst = 1;
 
         for(GreetingMsg g: q) {
             System.out.println("Greeting" + g.toString());
             System.out.println("MsgId = " + g.getMsgId() + " " + g.getMsgDetail());
-            responseMsg.appendData("{" + g.getMsgId() + "," + g.getMsgDetail() + "}");
+
+            if (notFirst == 1) {
+                notFirst = 0;
+//                responseMsg.appendData("\n");
+            } else {
+                responseMsg.appendData(",");
+            }
+            responseMsg.appendData("{ \"id\": \"" + g.getMsgId() + "\", \"msg\": \"" + g.getMsgDetail() + "\" }");
         }
 
-        responseMsg.appendData("}");
+        responseMsg.appendData("] }");
 
         return responseMsg;
     }

@@ -10,8 +10,19 @@ public class MyBean {
     }
 
     public void setData(String data) {
-        myData = data;
+//        myData = data;
+//        myData = myData.replace('\\', '/');
+        String d = data.replaceAll("\\\\\"", "\"");
+        System.out.println(d);
+        myData = d;
+//        myData = myData.replaceAll("\\\\", "");
     }
 
-    public void appendData(String data) { myData = myData + data;}
+    public void appendData(String data) {
+//        myData = myData + data;
+//        myData = myData.replace('\\', '/');
+        String d = data.replaceAll("\\\\", "");
+        System.out.println(d);
+        myData = myData + d;
+    }
 }
