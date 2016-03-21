@@ -3,18 +3,22 @@ package com.example.rajat.samplefab;
 import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.io.InputStream;
@@ -23,45 +27,74 @@ import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements onFetchCompletion {
 
     Context activityContext;
     public static final String TAG = "MainActivity";
 
     ArrayList<String> imageList;
     Iterator<String> imageListIterator;
-    private static final long IMAGE_CHANGE_DELTA = 5000; // in millisec
+    private static final long IMAGE_CHANGE_DELTA = 8000; // in millisec
+
+    ArrayList<GreetingMsg> greetingList;
+    Iterator<GreetingMsg> greetingListIterator;
+    Timer greetingTimer;
+    private static final long GREETING_CHANGE_DELTA = 4000; // in millisec
+
 
     ImageView imageView1, imageView2;
     ImageView imageViewToRemove;
-    FloatingActionButton fab;
-    TextView inputText;
+//    FloatingActionButton fab;
+    EditText inputText;
     Timer imageTimer;
+//    FloatingActionButton volumeFab;
+    ImageButton sendButton;
+    LinearLayout sendMsgLayout;
+    ImageButton newMsgButton;
+    LinearLayout showMsgLayout;
+    TextView greetingText;
 
-    private static int ANIM_IMAGE_CHANGE_DURATION = 1000;
+    private static int ANIM_IMAGE_CHANGE_DURATION = 800;
 //    Animator.AnimatorListener animListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-
         Log.d(TAG, "onCreate called");
         activityContext = this;
         setContentView(R.layout.activity_main);
-
 
 //        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
 //        setSupportActionBar(toolbar);
 
         imageView1 = (ImageView) findViewById(R.id.image1);
         imageView2 = (ImageView) findViewById(R.id.image2);
-        fab = (FloatingActionButton) findViewById(R.id.fab);
-        inputText = (TextView) findViewById(R.id.inputText);
+//        fab = (FloatingActionButton) findViewById(R.id.fab);
+        inputText = (EditText) findViewById(R.id.inputText);
+        sendMsgLayout = (LinearLayout) findViewById(R.id.sendMsgLayout);
+        sendButton = (ImageButton) findViewById(R.id.sendMsgButton);
+        showMsgLayout = (LinearLayout) findViewById(R.id.showMsgLayout);
+        newMsgButton = (ImageButton) findViewById(R.id.newMsgButton);
+        greetingText = (TextView) findViewById(R.id.greetingText);
 
         fillImageList();
-        fab.setOnClickListener(fabOnClick);
+//        fab.setOnClickListener(fabOnClick);
+        sendButton.setOnClickListener(sendMsgOnClick);
+        imageView1.setOnClickListener(imgOnClick);
+        imageView2.setOnClickListener(imgOnClick);
+        newMsgButton.setOnClickListener(fabOnClick);
 
+        EndpointGetMessages getMsg = new EndpointGetMessages();
+
+        MessageStore m = new MessageStore(activityContext);
+        long maxMsgId = m.getMaxMsgId();
+        Log.d(TAG, "Max Msg Id " + maxMsgId);
+        getMsg.execute(new Pair<Context, Long>(activityContext, maxMsgId));
+
+//        greetingText.setTextColor(0xFFFFFF);
+        greetingList = m.getMessages();
+        greetingListIterator = greetingList.iterator();
     }
 
     private void startImageTimer() {
@@ -76,12 +109,29 @@ public class MainActivity extends AppCompatActivity {
         imageTimer = null;
     }
 
+
+
+    private void startGreetingTimer() {
+        greetingTimer = new Timer();
+        GreetingChangeTimerTask greetingChangeTimerTask = new GreetingChangeTimerTask();
+        greetingTimer.schedule(greetingChangeTimerTask, 0, GREETING_CHANGE_DELTA);
+    }
+
+    private void stopGreetingTimer() {
+        greetingTimer.cancel();
+        greetingTimer.purge();
+        greetingTimer = null;
+    }
+
+
+
     @Override
     protected void onPause() {
         super.onPause();
         Log.d(TAG, "onPause called");
         // Stop timer
         stopImageTimer();
+        stopGreetingTimer();
 //        imageTimer.cancel();
 
         //TODO: Stop animation
@@ -99,9 +149,8 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onResume called");
         // Start timer again
         startImageTimer();
+        startGreetingTimer();
 
-        EndpointsAsyncTask getMsg = new EndpointsAsyncTask();
-        getMsg.execute(new Pair<Context, String>(this, "Rajat"));
     }
 
     View.OnClickListener fabOnClick = new View.OnClickListener() {
@@ -115,8 +164,12 @@ public class MainActivity extends AppCompatActivity {
 //            inputText.setWidth(view.getWidth());
 //            inputText.setHeight(view.getHeight());
 //
-            inputText.setVisibility(View.VISIBLE);
-            ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(inputText, "alpha", 0f, 1f);
+//            inputText.setVisibility(View.VISIBLE);
+//            ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(inputText, "alpha", 0f, 1f);
+
+            sendMsgLayout.setVisibility(View.VISIBLE);
+            ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(sendMsgLayout, "alpha", 0f, 1f);
+
 //            ObjectAnimator animX = ObjectAnimator.ofFloat(inputText, "x", 20);
 //            ObjectAnimator animY = ObjectAnimator.ofFloat(inputText, "y", 20);
 
@@ -128,13 +181,61 @@ public class MainActivity extends AppCompatActivity {
 //            animSetDetail.playTogether(animFadeIn, animX);
 
 
-            animFadeIn.setDuration(2000);
+            animFadeIn.setDuration(600);
             animFadeIn.start();
 //            animSetDetail.setDuration(2000);
 //            animSetDetail.start();
             Log.d(TAG, "Showing Input Box");
+
+//            fab.setVisibility(View.GONE);
+            showMsgLayout.setVisibility(View.GONE);
+//            inputText.setFocusable(true);
+//            inputText.requestFocus();
+//            showSoftKeyboard(inputText);
         }
     };
+
+    View.OnClickListener sendMsgOnClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+
+            String msg = (String) inputText.getText().toString();
+
+            if(msg == null || msg.equals("")) {
+                Log.d(TAG, "Empty message");
+                return;
+            }
+
+            // Sending Message to server
+            EndpointsAsyncTask getMsg = new EndpointsAsyncTask();
+            getMsg.execute(new Pair<Context, String>(activityContext, msg));
+
+            hideKeyboard();
+            hideSendMsgLayout();
+            inputText.setText("");
+        }
+    };
+
+    private void hideSendMsgLayout() {
+
+        // Hide message box
+        ObjectAnimator animFadeOut = ObjectAnimator.ofFloat(sendMsgLayout, "alpha", 1f, 0f);
+
+        animFadeOut.setDuration(600);
+        animFadeOut.start();
+        Log.d(TAG, "Hiding Input Box");
+
+        // TODO: on completion of animation set visibility to gone
+        sendMsgLayout.setVisibility(View.GONE);
+//        fab.setVisibility(View.VISIBLE);
+        showMsgLayout.setVisibility(View.VISIBLE);
+//        inputText.clearFocus();
+//        InputMethodManager imm = (InputMethodManager)
+//                getSystemService(Context.INPUT_METHOD_SERVICE);
+//        imm.showSoftInput(sendMsgLayout, InputMethodManager.RESULT_HIDDEN);
+
+    }
+
 
     private void fillImageList() {
         imageList = new ArrayList<String>();
@@ -205,9 +306,16 @@ public class MainActivity extends AppCompatActivity {
 //            }
             imageToDisplay = getNextImage(imageListIterator);
             final Drawable d;
+
             try {
                 InputStream inputStream = activityContext.getAssets().open("imagesToDisplay/" + imageToDisplay);
                 d = Drawable.createFromStream(inputStream, imageToDisplay);
+
+                if (inputStream != null) {
+                    inputStream.close();
+                    inputStream = null;
+                }
+
             } catch (Exception e) {
                 Log.d(TAG, "Unable to display image");
                 // TODO: show some background image
@@ -249,7 +357,40 @@ public class MainActivity extends AppCompatActivity {
     }
 //    };
 
+    String getNextGreeting(Iterator it) {
+        String greeting = "";
+        GreetingMsg g;
 
+        if (!greetingListIterator.hasNext()) {
+            // Reset iterator to first msg if it has reached last msg
+            greetingListIterator = greetingList.iterator();
+        }
+
+        if (greetingListIterator.hasNext())
+        {
+            g = (GreetingMsg) greetingListIterator.next();
+            greeting = g.msg;
+        } else {
+            return null; // If no image in list return from this function
+        }
+
+        return greeting;
+    }
+
+
+    class GreetingChangeTimerTask extends TimerTask {
+        @Override
+        public synchronized void run() {
+            final String greeting = getNextGreeting(greetingListIterator);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d(TAG, "Changing msg to " + greeting);
+                    greetingText.setText(greeting);
+                }
+            });
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -286,7 +427,7 @@ public class MainActivity extends AppCompatActivity {
         ObjectAnimator animFadeOutDetail = ObjectAnimator.ofFloat(viewToRemove, "alpha", 1f, 0f);
 
 //        ObjectAnimator animMoveIn = ObjectAnimator.ofFloat(viewToAdd, "x", -80f, 0f);
-        ObjectAnimator animFadeInDetail = ObjectAnimator.ofFloat(viewToAdd, "alpha", 0f, 1f);
+        ObjectAnimator animFadeInDetail = ObjectAnimator.ofFloat(viewToAdd, "alpha", 0.6f, 1f);
 
 
 //        AnimatorSet animSet = new AnimatorSet();
@@ -319,6 +460,7 @@ public class MainActivity extends AppCompatActivity {
 
 //            if (animation == animFadeOutDetail) {
                 imageViewToRemove.setVisibility(View.GONE);
+                imageViewToRemove.setImageDrawable(null);
 //            }
         }
 
@@ -333,4 +475,54 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+
+        Log.d(TAG, "onBackPressed");
+//        fab.setFocusable(true);
+//        fab.requestFocus();
+        newMsgButton.setFocusable(true);
+        newMsgButton.requestFocus();
+        if (sendMsgLayout.getVisibility() == View.VISIBLE) {
+//            hideKeyboard();
+            hideSendMsgLayout();
+        }
+//        } else {
+//            super.onBackPressed();
+//        }
+    }
+
+    View.OnClickListener imgOnClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (sendMsgLayout.getVisibility() == View.VISIBLE) {
+                hideKeyboard();
+                hideSendMsgLayout();
+            }
+        }
+    };
+
+    public void showSoftKeyboard(View view) {
+        InputMethodManager imm = (InputMethodManager) activityContext.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+        Log.v(TAG, "Showing keyboard");
+        // imm.toggleSoftInput(0, InputMethodManager.SHOW_IMPLICIT);
+    }
+
+    public void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) activityContext.getSystemService(Activity.INPUT_METHOD_SERVICE);
+        if (imm.isAcceptingText()) {
+            Log.v(TAG, "Hiding Keyboard");
+//            imm.toggleSoftInput(InputMethodManager.HIDE_IMPLICIT_ONLY, 0);
+            imm.hideSoftInputFromWindow(inputText.getWindowToken(), 0);
+        }
+    }
+
+    @Override
+    public synchronized void onMsgFetchComplete() {
+        MessageStore m = new MessageStore(activityContext);
+        greetingList = m.getMessages();
+        greetingListIterator = greetingList.iterator();
+    }
 }
