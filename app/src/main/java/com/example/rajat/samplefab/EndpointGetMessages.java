@@ -27,6 +27,11 @@ public class EndpointGetMessages extends AsyncTask<Pair<Context, Long>, Void, Lo
     private static MyApi myApiService = null;
     private Context context;
     private static final String TAG = "EndpointAsyncTask";
+    private onFetchCompletion fetchCompletionListener;
+
+    public EndpointGetMessages(onFetchCompletion listener) {
+        fetchCompletionListener = listener;
+    }
 
     @Override
     protected Long doInBackground(Pair<Context, Long>... params) {
@@ -81,11 +86,16 @@ public class EndpointGetMessages extends AsyncTask<Pair<Context, Long>, Void, Lo
 //        Toast.makeText(context, result, Toast.LENGTH_LONG).show();
         Log.d(TAG, "Result = " + result);
 
-        MessageStore m = new MessageStore(context);
-        ArrayList<GreetingMsg> msgList = m.getMessages();
-        Log.d(TAG, "Msg from Database");
-        for (GreetingMsg g : msgList) {
-            g.print();
+//        MessageStore m = new MessageStore(context);
+//
+//        ArrayList<GreetingMsg> msgList = m.getMessages();
+//        Log.d(TAG, "Msg from Database");
+//        for (GreetingMsg g : msgList) {
+//            g.print();
+//        }
+
+        if (result == 1) {
+            fetchCompletionListener.onMsgFetchComplete();
         }
 
     }

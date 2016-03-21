@@ -10,8 +10,7 @@ import android.os.Bundle;
 import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.webkit.MimeTypeMap;
@@ -44,7 +43,6 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
 
     ImageView imageView1, imageView2;
     ImageView imageViewToRemove;
-//    FloatingActionButton fab;
     EditText inputText;
     Timer imageTimer;
 //    FloatingActionButton volumeFab;
@@ -53,6 +51,9 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
     ImageButton newMsgButton;
     LinearLayout showMsgLayout;
     TextView greetingText;
+
+    View msgLayoutToRemove;
+
 
     private static int ANIM_IMAGE_CHANGE_DURATION = 800;
 //    Animator.AnimatorListener animListener;
@@ -65,12 +66,8 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         activityContext = this;
         setContentView(R.layout.activity_main);
 
-//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-//        setSupportActionBar(toolbar);
-
         imageView1 = (ImageView) findViewById(R.id.image1);
         imageView2 = (ImageView) findViewById(R.id.image2);
-//        fab = (FloatingActionButton) findViewById(R.id.fab);
         inputText = (EditText) findViewById(R.id.inputText);
         sendMsgLayout = (LinearLayout) findViewById(R.id.sendMsgLayout);
         sendButton = (ImageButton) findViewById(R.id.sendMsgButton);
@@ -79,20 +76,19 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         greetingText = (TextView) findViewById(R.id.greetingText);
 
         fillImageList();
-//        fab.setOnClickListener(fabOnClick);
+
         sendButton.setOnClickListener(sendMsgOnClick);
         imageView1.setOnClickListener(imgOnClick);
         imageView2.setOnClickListener(imgOnClick);
         newMsgButton.setOnClickListener(fabOnClick);
 
-        EndpointGetMessages getMsg = new EndpointGetMessages();
+        EndpointGetMessages getMsg = new EndpointGetMessages(this);
 
         MessageStore m = new MessageStore(activityContext);
         long maxMsgId = m.getMaxMsgId();
         Log.d(TAG, "Max Msg Id " + maxMsgId);
         getMsg.execute(new Pair<Context, Long>(activityContext, maxMsgId));
 
-//        greetingText.setTextColor(0xFFFFFF);
         greetingList = m.getMessages();
         greetingListIterator = greetingList.iterator();
     }
@@ -109,8 +105,6 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         imageTimer = null;
     }
 
-
-
     private void startGreetingTimer() {
         greetingTimer = new Timer();
         GreetingChangeTimerTask greetingChangeTimerTask = new GreetingChangeTimerTask();
@@ -123,8 +117,6 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         greetingTimer = null;
     }
 
-
-
     @Override
     protected void onPause() {
         super.onPause();
@@ -132,7 +124,6 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         // Stop timer
         stopImageTimer();
         stopGreetingTimer();
-//        imageTimer.cancel();
 
         //TODO: Stop animation
     }
@@ -153,42 +144,42 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
 
     }
 
+    private void switchLayout(View viewToRemove, View viewToShow) {
+
+        ObjectAnimator animRotateOut = ObjectAnimator.ofFloat(viewToRemove, View.ROTATION_X, 0f, 90f);
+        ObjectAnimator animFadeOut = ObjectAnimator.ofFloat(viewToRemove, View.ALPHA, 1f, 0f);
+
+        ObjectAnimator animRotateIn = ObjectAnimator.ofFloat(viewToShow, "rotationX", -270f, 0f);
+        ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(viewToShow, "alpha", 0f, 1f);
+
+        AnimatorSet animSet = new AnimatorSet();
+        animSet.playTogether(animRotateOut, animFadeOut, animRotateIn, animFadeIn);
+        animSet.setDuration(600);
+
+        viewToShow.setVisibility(View.VISIBLE);
+        msgLayoutToRemove = viewToRemove;
+        animFadeOut.addListener(textAnimListener);
+        animSet.start();
+
+    }
+
+
     View.OnClickListener fabOnClick = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-////            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-////                    .setAction("Action", null).show();
-//
-//            inputText.setX(view.getX());
-//            inputText.setY(view.getY());
-//            inputText.setWidth(view.getWidth());
-//            inputText.setHeight(view.getHeight());
-//
-//            inputText.setVisibility(View.VISIBLE);
-//            ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(inputText, "alpha", 0f, 1f);
 
-            sendMsgLayout.setVisibility(View.VISIBLE);
-            ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(sendMsgLayout, "alpha", 0f, 1f);
+            switchLayout(showMsgLayout, sendMsgLayout);
 
-//            ObjectAnimator animX = ObjectAnimator.ofFloat(inputText, "x", 20);
-//            ObjectAnimator animY = ObjectAnimator.ofFloat(inputText, "y", 20);
+//            sendMsgLayout.setVisibility(View.VISIBLE);
+//            ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(sendMsgLayout, "alpha", 0f, 1f);
 
-//            ObjectAnimator animW = ObjectAnimator.ofFloat(inputText, "width", 200);
-//            ObjectAnimator animH = ObjectAnimator.ofFloat(inputText, "height", 200);
+//            animFadeIn.setDuration(600);
+//            animFadeIn.start();
 
-//            AnimatorSet animSetDetail = new AnimatorSet();
-//            animSetDetail.playTogether(animFadeIn, animX, animY, animW, animH);
-//            animSetDetail.playTogether(animFadeIn, animX);
-
-
-            animFadeIn.setDuration(600);
-            animFadeIn.start();
-//            animSetDetail.setDuration(2000);
-//            animSetDetail.start();
             Log.d(TAG, "Showing Input Box");
 
-//            fab.setVisibility(View.GONE);
-            showMsgLayout.setVisibility(View.GONE);
+//            showMsgLayout.setVisibility(View.GONE);
+
 //            inputText.setFocusable(true);
 //            inputText.requestFocus();
 //            showSoftKeyboard(inputText);
@@ -218,17 +209,19 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
 
     private void hideSendMsgLayout() {
 
+        switchLayout(sendMsgLayout, showMsgLayout);
         // Hide message box
-        ObjectAnimator animFadeOut = ObjectAnimator.ofFloat(sendMsgLayout, "alpha", 1f, 0f);
-
-        animFadeOut.setDuration(600);
-        animFadeOut.start();
+//        ObjectAnimator animFadeOut = ObjectAnimator.ofFloat(sendMsgLayout, "alpha", 1f, 0f);
+//
+//        animFadeOut.setDuration(600);
+//        animFadeOut.start();
         Log.d(TAG, "Hiding Input Box");
 
-        // TODO: on completion of animation set visibility to gone
-        sendMsgLayout.setVisibility(View.GONE);
-//        fab.setVisibility(View.VISIBLE);
-        showMsgLayout.setVisibility(View.VISIBLE);
+//        sendMsgLayout.setVisibility(View.GONE);
+//        showMsgLayout.setVisibility(View.VISIBLE);
+
+
+
 //        inputText.clearFocus();
 //        InputMethodManager imm = (InputMethodManager)
 //                getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -371,7 +364,7 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
             g = (GreetingMsg) greetingListIterator.next();
             greeting = g.msg;
         } else {
-            return null; // If no image in list return from this function
+            return "Happy Birthday"; // If no msg in list return from this function
         }
 
         return greeting;
@@ -386,66 +379,42 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
                 @Override
                 public void run() {
                     Log.d(TAG, "Changing msg to " + greeting);
+                    int len = greeting.length();
+                    if (len < 25) {
+                        Log.v(TAG, "Setting text size to 18");
+                        greetingText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
+                    } else if (len < 45)
+                    {
+                        Log.v(TAG, "Setting text size to 16");
+                        greetingText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+                    } else {
+                        Log.v(TAG, "Setting text size to 14");
+                        greetingText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                    }
+
                     greetingText.setText(greeting);
+
                 }
             });
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.sendMsg) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
     private void bgImageChange(ImageView viewToRemove, ImageView viewToAdd) {
 
-//        ObjectAnimator animRotateOut = ObjectAnimator.ofFloat(heading, View.ROTATION_X, 0f, 90f);
-//        ObjectAnimator animFadeOut = ObjectAnimator.ofFloat(heading, View.ALPHA, 1f, 0f);
-//
-//        ObjectAnimator animRotateIn = ObjectAnimator.ofFloat(headingNew, "rotationX", -270f, 0f);
-//        ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(headingNew, "alpha", 0f, 1f);
-
         /* Image Animation */
-//        ObjectAnimator animMoveOut = ObjectAnimator.ofFloat(viewToRemove, "x", 0f, 80f);
         ObjectAnimator animFadeOutDetail = ObjectAnimator.ofFloat(viewToRemove, "alpha", 1f, 0f);
-
-//        ObjectAnimator animMoveIn = ObjectAnimator.ofFloat(viewToAdd, "x", -80f, 0f);
         ObjectAnimator animFadeInDetail = ObjectAnimator.ofFloat(viewToAdd, "alpha", 0.6f, 1f);
-
-
-//        AnimatorSet animSet = new AnimatorSet();
-//        animSet.playTogether(animRotateOut, animFadeOut, animRotateIn, animFadeIn);
 
         viewToAdd.setVisibility(View.VISIBLE);
         AnimatorSet animSetDetail = new AnimatorSet();
-//        animSetDetail.playTogether(animMoveOut, animFadeOutDetail, animMoveIn, animFadeInDetail);
+
         animSetDetail.playTogether(animFadeOutDetail, animFadeInDetail);
         animSetDetail.setDuration(ANIM_IMAGE_CHANGE_DURATION);
 
         Log.d(TAG, "Starting Animation");
-//        animSet.start();
-
 
         imageViewToRemove = viewToRemove;
         animFadeOutDetail.addListener(animListener);
-
         animSetDetail.start();
     }
 
@@ -480,8 +449,6 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         super.onBackPressed();
 
         Log.d(TAG, "onBackPressed");
-//        fab.setFocusable(true);
-//        fab.requestFocus();
         newMsgButton.setFocusable(true);
         newMsgButton.requestFocus();
         if (sendMsgLayout.getVisibility() == View.VISIBLE) {
@@ -525,4 +492,21 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         greetingList = m.getMessages();
         greetingListIterator = greetingList.iterator();
     }
+
+
+    Animator.AnimatorListener textAnimListener = new Animator.AnimatorListener() {
+        @Override
+        public void onAnimationStart(Animator animation) {}
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+            msgLayoutToRemove.setVisibility(View.GONE);
+        }
+
+        @Override
+        public void onAnimationCancel(Animator animation) {}
+        @Override
+        public void onAnimationRepeat(Animator animation) {}
+    };
+
 }

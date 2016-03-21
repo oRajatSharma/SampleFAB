@@ -8,7 +8,7 @@
     android:fitsSystemWindows="true"
     tools:context=".MainActivity"
 
-    android:background="#0000EA"
+    android:background="#ffffEA"
     >
 
     <!--<android.support.design.widget.AppBarLayout-->
@@ -100,15 +100,12 @@
             android:layout_height="wrap_content"
             android:maxLines="4"
             android:padding="15dp"
-            android:elevation="6dp"
             android:visibility="visible"
             android:alpha="1"
             android:background="@drawable/input_text_box_bg"
-            android:hint="Enter Message"
-            android:textColorHint="@color/lightGrey"
+            android:hint="Send Birthday Wishes"
             android:inputType="textMultiLine"
-            android:textSize="12sp"
-            android:textColor="@color/colorAccent"
+            android:textSize="14sp"
 
             android:layout_marginLeft="@dimen/fab_margin"
 
@@ -162,7 +159,6 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:padding="15dp"
-            android:textColor="@color/colorAccent"
             android:background="@drawable/input_text_box_bg"
             android:textAlignment="center"
             android:text="Happy Birthday"
