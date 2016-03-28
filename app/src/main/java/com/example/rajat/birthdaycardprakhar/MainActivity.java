@@ -5,7 +5,10 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.support.v4.util.Pair;
 import android.support.v7.app.AppCompatActivity;
@@ -54,6 +57,11 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
     LinearLayout showMsgLayout;
     TextView greetingText;
 
+    ImageButton pauseButton;
+    ImageButton playButton;
+    ImageButton buttonToHide;
+    ImageButton buttonToShow;
+
     View msgLayoutToRemove;
 
 
@@ -77,12 +85,19 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         newMsgButton = (ImageButton) findViewById(R.id.newMsgButton);
         greetingText = (TextView) findViewById(R.id.greetingText);
 
+        pauseButton = (ImageButton) findViewById(R.id.pauseButton);
+        playButton = (ImageButton) findViewById(R.id.playButton);
+
         fillImageList();
 
         sendButton.setOnClickListener(sendMsgOnClick);
         imageView1.setOnClickListener(imgOnClick);
         imageView2.setOnClickListener(imgOnClick);
         newMsgButton.setOnClickListener(fabOnClick);
+
+        pauseButton.setOnClickListener(pauseButtonOnClick);
+        playButton.setOnClickListener(playButtonOnClick);
+
 
         EndpointGetMessages getMsg = new EndpointGetMessages(this);
 
@@ -93,6 +108,9 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
 
         greetingList = m.getMessages();
         greetingListIterator = greetingList.iterator();
+
+        initAudioPlay();
+
     }
 
     private void startImageTimer() {
@@ -127,6 +145,7 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         stopImageTimer();
         stopGreetingTimer();
 
+        pauseAudio();
         //TODO: Stop animation
     }
 
@@ -134,6 +153,7 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
     protected void onStop() {
         super.onStop();
         Log.d(TAG, "onStop called");
+
     }
 
     @Override
@@ -143,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         // Start timer again
         startImageTimer();
         startGreetingTimer();
-
+        playAudio();
     }
 
     private void switchLayout(View viewToRemove, View viewToShow) {
@@ -510,5 +530,185 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         @Override
         public void onAnimationRepeat(Animator animation) {}
     };
+
+
+
+    // Audio handling
+    private MediaPlayer mediaPlayer = new MediaPlayer();
+    private static final String audioFilePath = "audioFiles/chaolo.m4a";
+    private int audioPausePosition = 0;
+
+    private void initAudioPlay() {
+        try {
+
+            AssetFileDescriptor afd = getAssets().openFd("audioFiles/chaolo.m4a");
+
+            if (null != audioFilePath) {
+                mediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+            } else{
+                return;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "setDataSource failed" + audioFilePath);
+            return;
+        }
+
+        Log.d(TAG, "mediaPlayer.setDataSource() : " + audioFilePath);
+
+        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+
+            @Override
+            public void onPrepared(MediaPlayer mp) {
+                Log.d(TAG, "Prepare successful");
+                playAudio();
+                mp.setLooping(true);
+            }
+        });
+
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) { }
+        });
+
+        mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                switch (what) {
+                    case -38:
+                        break;
+                    default:
+                        break;
+                }
+                return false;
+            }
+        });
+
+        // Start Prepare
+        try {
+            mediaPlayer.prepareAsync();
+        }catch (Exception e)
+        {
+            Log.e(TAG,"prepareAsync fail" ,e);
+        }
+    }
+
+
+    private void playAudio()
+    {
+        AudioManager am = (AudioManager) activityContext.getSystemService(Context.AUDIO_SERVICE);
+
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
+        // Request audio focus for playback
+        int result = am.requestAudioFocus(afChangeListener,
+                // Use the music stream.
+                AudioManager.STREAM_MUSIC,
+                // Request permanent focus.
+                AudioManager.AUDIOFOCUS_GAIN);
+
+        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            // Start playback.
+            if (audioPausePosition != 0) {
+                Log.d(TAG, "Seeking to " + audioPausePosition);
+                mediaPlayer.seekTo(audioPausePosition);
+            }
+            Log.d(TAG, "Staring audio play");
+            mediaPlayer.start();
+        }
+    }
+
+    private void pauseAudio() {
+        AudioManager am = (AudioManager) activityContext.getSystemService(Context.AUDIO_SERVICE);
+        am.abandonAudioFocus(afChangeListener);
+        mediaPlayer.pause();
+    }
+
+    AudioManager.OnAudioFocusChangeListener afChangeListener =
+            new AudioManager.OnAudioFocusChangeListener() {
+                public void onAudioFocusChange(int focusChange) {
+                    if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                        // Pause playback
+                        mediaPlayer.pause();
+                    } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+                        // Resume playback
+                        mediaPlayer.start();
+                    } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                        // Stop playback
+                        mediaPlayer.stop();
+                    }
+                }
+            };
+
+
+    View.OnClickListener pauseButtonOnClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            pauseAudio();
+            rotateButtons(pauseButton, playButton);
+//            buttonToHide = pauseButton;
+//            pauseButton.setVisibility(View.GONE);
+//            pauseButton.setAlpha(0f);
+//
+//            playButton.setVisibility(View.VISIBLE);
+//            playButton.setAlpha(1f);
+        }
+    };
+
+    View.OnClickListener playButtonOnClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            playAudio();
+            rotateButtons(playButton, pauseButton);
+//            buttonToHide = playButton;
+//            playButton.setVisibility(View.GONE);
+//            playButton.setAlpha(0f);
+//
+//            pauseButton.setVisibility(View.VISIBLE);
+//            pauseButton.setAlpha(1f);
+        }
+    };
+
+
+    private void rotateButtons(View viewToRemove, View viewToShow) {
+
+        ObjectAnimator animRotateOut = ObjectAnimator.ofFloat(viewToRemove, View.ROTATION, 0f, 90f);
+        ObjectAnimator animFadeOut = ObjectAnimator.ofFloat(viewToRemove, View.ALPHA, 1f, 0f);
+
+//        ObjectAnimator animRotateIn = ObjectAnimator.ofFloat(viewToShow, "rotationX", -270f, 0f);
+        ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(viewToShow, "alpha", 0f, 1f);
+
+
+        viewToShow.setVisibility(View.VISIBLE);
+
+        buttonToHide = (ImageButton) viewToRemove;
+        buttonToShow = (ImageButton) viewToShow;
+
+        animFadeOut.addListener(buttonAnimListener);
+        AnimatorSet animSet = new AnimatorSet();
+        animSet.setDuration(250);
+        animSet.playTogether(animRotateOut, animFadeOut, animFadeIn);
+        animSet.start();
+    }
+
+    Animator.AnimatorListener buttonAnimListener = new Animator.AnimatorListener() {
+        @Override
+        public void onAnimationStart(Animator animation) {}
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+            buttonToHide.setVisibility(View.GONE);
+            buttonToHide.setAlpha(0f);
+            buttonToHide.setRotation(0f);
+            buttonToShow.setAlpha(1f);
+        }
+
+        @Override
+        public void onAnimationCancel(Animator animation) {}
+        @Override
+        public void onAnimationRepeat(Animator animation) {}
+    };
+
+
+
 
 }
