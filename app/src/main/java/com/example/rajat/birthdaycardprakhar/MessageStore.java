@@ -165,4 +165,28 @@ public class MessageStore {
         return maxMsgId;
     }
 
+
+    public Cursor getMsgListCursor() {
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+        String[] projection = {MsgEntry._ID, MsgEntry.COLUMN_NAME_ENTRY_ID, MsgEntry.COLUMN_NAME_MSG_TEXT};
+        // How you want the results sorted in the resulting Cursor
+        String sortOrder = MsgEntry.COLUMN_NAME_ENTRY_ID + " DESC";
+        String selection = null;
+        String[] selectionArgs = null;
+
+        Cursor cursor = db.query(
+                MsgEntry.TABLE_NAME,  // The table to query
+                projection,                               // The columns to return
+                selection,                                // The columns for the WHERE clause
+                selectionArgs,                            // The values for the WHERE clause
+                null,                                     // don't group the rows
+                null,                                     // don't filter by row groups
+                sortOrder                                 // The sort order
+        );
+
+        return cursor;
+
+    }
+
 }

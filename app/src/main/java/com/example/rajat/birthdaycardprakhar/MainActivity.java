@@ -5,6 +5,7 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
@@ -98,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         pauseButton.setOnClickListener(pauseButtonOnClick);
         playButton.setOnClickListener(playButtonOnClick);
 
+        greetingText.setOnClickListener(greetingTextOnClick);
 
         EndpointGetMessages getMsg = new EndpointGetMessages(this);
 
@@ -709,6 +711,15 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
     };
 
 
+
+    View.OnClickListener greetingTextOnClick = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            Intent showGreetingList = new Intent();
+            showGreetingList.setClass(activityContext, GreetingList.class);
+            startActivity(showGreetingList);
+        }
+    };
 
 
 }
