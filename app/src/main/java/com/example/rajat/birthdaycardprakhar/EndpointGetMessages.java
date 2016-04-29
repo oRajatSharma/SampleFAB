@@ -1,6 +1,8 @@
 package com.example.rajat.birthdaycardprakhar;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.util.Pair;
 import android.util.JsonReader;
@@ -67,11 +69,19 @@ public class EndpointGetMessages extends AsyncTask<Pair<Context, Long>, Void, Lo
 
             List <GreetingMsg> msgList = readJsonStream(ins);
 
+//            MessageStore m = new MessageStore(context);
+//            for (GreetingMsg item: msgList) {
+//                item.print();
+//                m.addMsg(item);
+//            }
 
-            MessageStore m = new MessageStore(context);
+            Uri mNewUri;
             for (GreetingMsg item: msgList) {
                 item.print();
-                m.addMsg(item);
+                ContentValues values = new ContentValues();
+                values.put(MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID, item.id);
+                values.put(MessageStore.MsgEntry.COLUMN_NAME_MSG_TEXT, item.msg);
+                mNewUri = context.getContentResolver().insert(MessageStore.CONTENT_URI, values);
             }
 
             return 1L;

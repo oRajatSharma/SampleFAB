@@ -7,6 +7,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
+import android.database.Cursor;
+import android.database.SQLException;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -103,12 +105,60 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
 
         EndpointGetMessages getMsg = new EndpointGetMessages(this);
 
-        MessageStore m = new MessageStore(activityContext);
-        long maxMsgId = m.getMaxMsgId();
+//        MessageStore m = new MessageStore(activityContext);
+//        long maxMsgId = m.getMaxMsgId();
+//        Log.d(TAG, "Max Msg Id " + maxMsgId);
+//        getMsg.execute(new Pair<Context, Long>(activityContext, maxMsgId));
+//
+//        greetingList = m.getMessages();
+
+        /* Get maximum message Id currently in DB */
+        String[] mProjection = {MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID};
+        String mSelectionClause = null;
+        String[] mSelectionArgs = null;
+        String mSortOrder = MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID + " DESC";
+
+        Cursor cursor = getContentResolver().query(MessageStore.CONTENT_URI, mProjection, mSelectionClause,
+                        mSelectionArgs, mSortOrder);
+
+        long maxMsgId = 0;
+        if (cursor != null && cursor.moveToFirst()) {
+            int colId = cursor.getColumnIndex(MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID);
+
+            maxMsgId = cursor.getLong(colId); // First cursor element will give maximum value
+            cursor.close();
+        }
         Log.d(TAG, "Max Msg Id " + maxMsgId);
         getMsg.execute(new Pair<Context, Long>(activityContext, maxMsgId));
 
-        greetingList = m.getMessages();
+
+        /* Get All messages from DB */
+        greetingList = new ArrayList<>();
+        String[] mNewProjection = {MessageStore.MsgEntry._ID,
+                MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID, MessageStore.MsgEntry.COLUMN_NAME_MSG_TEXT};
+
+        try {
+            Cursor msgCursor = getContentResolver().query(MessageStore.CONTENT_URI, mNewProjection, mSelectionClause,
+                    mSelectionArgs, mSortOrder);
+
+            if (msgCursor != null && msgCursor.moveToFirst()) {
+                int colId = msgCursor.getColumnIndex(MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID);
+                int colMsg = msgCursor.getColumnIndex(MessageStore.MsgEntry.COLUMN_NAME_MSG_TEXT);
+
+                while (msgCursor.isAfterLast() == false) {
+
+                    GreetingMsg g = new GreetingMsg(msgCursor.getLong(colId), msgCursor.getString(colMsg));
+                    greetingList.add(g);
+//                Log.v(TAG, "Adding msg to list");
+                    msgCursor.moveToNext();
+                }
+                msgCursor.close();
+            }
+        }
+        catch (SQLException e) {
+            Log.d(TAG, e.getMessage());
+        }
+
         greetingListIterator = greetingList.iterator();
 
         initAudioPlay();
@@ -170,16 +220,17 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
 
     private void switchLayout(View viewToRemove, View viewToShow) {
 
-        ObjectAnimator animRotateOut = ObjectAnimator.ofFloat(viewToRemove, View.ROTATION_X, 0f, 90f);
+        ObjectAnimator animRotateOut = ObjectAnimator.ofFloat(viewToRemove, View.ROTATION_X, 0f, 180f);
         ObjectAnimator animFadeOut = ObjectAnimator.ofFloat(viewToRemove, View.ALPHA, 1f, 0f);
 
-        ObjectAnimator animRotateIn = ObjectAnimator.ofFloat(viewToShow, "rotationX", -270f, 0f);
+        ObjectAnimator animRotateIn = ObjectAnimator.ofFloat(viewToShow, "rotationX", -180f, 0f);
         ObjectAnimator animFadeIn = ObjectAnimator.ofFloat(viewToShow, "alpha", 0f, 1f);
 
         AnimatorSet animSet = new AnimatorSet();
         animSet.playTogether(animRotateOut, animFadeOut, animRotateIn, animFadeIn);
         animSet.setDuration(600);
 
+        viewToShow.setAlpha(0f);
         viewToShow.setVisibility(View.VISIBLE);
         msgLayoutToRemove = viewToRemove;
         animFadeOut.addListener(textAnimListener);
@@ -512,9 +563,35 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
 
     @Override
     public synchronized void onMsgFetchComplete() {
-        MessageStore m = new MessageStore(activityContext);
-        greetingList = m.getMessages();
+//        MessageStore m = new MessageStore(activityContext);
+//        greetingList = m.getMessages();
+
+        /* Get All messages from DB */
+        String[] mNewProjection = {MessageStore.MsgEntry._ID,
+                MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID, MessageStore.MsgEntry.COLUMN_NAME_MSG_TEXT};
+        String mSelectionClause = null;
+        String[] mSelectionArgs = null;
+        String mSortOrder = MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID + " DESC";
+
+        Cursor msgCursor = getContentResolver().query(MessageStore.CONTENT_URI, mNewProjection, mSelectionClause,
+                mSelectionArgs, mSortOrder);
+
+        int colId = msgCursor.getColumnIndex(MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID);
+        int colMsg = msgCursor.getColumnIndex(MessageStore.MsgEntry.COLUMN_NAME_MSG_TEXT);
+
+        if (msgCursor != null && msgCursor.moveToFirst()) {
+            while (msgCursor.isAfterLast() == false) {
+
+                GreetingMsg g = new GreetingMsg(msgCursor.getLong(colId), msgCursor.getString(colMsg));
+                greetingList.add(g);
+//                Log.v(TAG, "Adding msg to list");
+                msgCursor.moveToNext();
+            }
+        }
+        msgCursor.close();
+
         greetingListIterator = greetingList.iterator();
+
     }
 
 
@@ -525,6 +602,7 @@ public class MainActivity extends AppCompatActivity implements onFetchCompletion
         @Override
         public void onAnimationEnd(Animator animation) {
             msgLayoutToRemove.setVisibility(View.GONE);
+            msgLayoutToRemove.setAlpha(0f);
         }
 
         @Override

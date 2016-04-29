@@ -1,6 +1,7 @@
 package com.example.rajat.birthdaycardprakhar;
 
 import android.database.Cursor;
+import android.database.SQLException;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -21,13 +22,29 @@ public class GreetingList extends AppCompatActivity {
         Log.d(TAG, "onCreate called");
         setContentView(R.layout.activity_greeting_list);
 
-        MessageStore messageStore = new MessageStore(this);
-        greetingCursor = messageStore.getMsgListCursor();
+//        MessageStore messageStore = new MessageStore(this);
+//        greetingCursor = messageStore.getMsgListCursor();
 
-        CursorAdapter greetingListAdapter = new GreetingListAdapter(this, greetingCursor, 0);
+        String[] mNewProjection = {MessageStore.MsgEntry._ID,
+                MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID, MessageStore.MsgEntry.COLUMN_NAME_MSG_TEXT};
+        String mSelectionClause = null;
+        String[] mSelectionArgs = null;
+        String mSortOrder = MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID + " DESC";
 
-        ListView lv = (ListView) findViewById(R.id.greeting_list_view);
-        lv.setAdapter(greetingListAdapter);
+        try {
+                greetingCursor = getContentResolver().query(MessageStore.CONTENT_URI, mNewProjection, mSelectionClause,
+                    mSelectionArgs, mSortOrder);
+
+//            if (msgCursor != null && msgCursor.moveToFirst()) {
+
+
+            CursorAdapter greetingListAdapter = new GreetingListAdapter(this, greetingCursor, 0);
+
+            ListView lv = (ListView) findViewById(R.id.greeting_list_view);
+            lv.setAdapter(greetingListAdapter);
+        } catch (SQLException e) {
+            Log.d(TAG, e.getMessage());
+        }
 
     }
 

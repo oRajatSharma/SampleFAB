@@ -22,7 +22,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity android:name="com.example.rajat.birthdaycardprakhar.GreetingList"></activity>
+
+        <provider
+            android:name="com.example.rajat.birthdaycardprakhar.MessageStore"
+            android:authorities="com.example.rajat.birthdaycardprakhar">
+        </provider>
+
+
     </application>
+
 
 </manifest>
