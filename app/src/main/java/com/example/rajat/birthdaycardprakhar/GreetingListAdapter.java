@@ -27,6 +27,8 @@ public class GreetingListAdapter extends CursorAdapter {
 
         Log.v(TAG, "newView called");
         View v = LayoutInflater.from(context).inflate(R.layout.greeting_list_view_item, parent, false);
+        ViewHolder vh = new ViewHolder(v);
+        v.setTag(vh);
         return v;
     }
 
@@ -34,14 +36,28 @@ public class GreetingListAdapter extends CursorAdapter {
     public void bindView(View view, Context context, Cursor cursor) {
 
         Log.v(TAG, "bindView called");
-        TextView greetingView = (TextView) view.findViewById(R.id.greeting_text_view);
+
+        ViewHolder vh = (ViewHolder) view.getTag();
+
+//        TextView greetingView = (TextView) view.findViewById(R.id.greeting_text_view);
         String greetingMsg = cursor.getString(cursor.getColumnIndexOrThrow(MessageStore.MsgEntry.COLUMN_NAME_MSG_TEXT));
-        greetingView.setText(greetingMsg);
+        vh.greetingView.setText(greetingMsg);
 
-        TextView greetingIdView = (TextView) view.findViewById(R.id.greeting_id_view);
+//        TextView greetingIdView = (TextView) view.findViewById(R.id.greeting_id_view);
         String greetingId = cursor.getString(cursor.getColumnIndexOrThrow(MessageStore.MsgEntry.COLUMN_NAME_ENTRY_ID));
-        greetingIdView.setText(greetingId);
+        vh.greetingIdView.setText(greetingId);
 
+    }
+
+    // Using ViewHolder pattern to avoid findViewById in bind view
+    public static class ViewHolder {
+        public TextView greetingView;
+        public TextView greetingIdView;
+
+        public ViewHolder(View view) {
+            greetingView = (TextView) view.findViewById(R.id.greeting_text_view);
+            greetingIdView = (TextView) view.findViewById(R.id.greeting_id_view);
+        }
     }
 
     @Override
